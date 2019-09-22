@@ -1,6 +1,8 @@
 # solaire
 CSE 579 KRR - ASU MCS Online
 
+What the rules in the world.lp file is trying to do is given the init rules from the inst.lp files, we are trying to assign objects locations at time step 0.
+
 # Objects
 
 Object tells you the type of object and its instance 
@@ -21,9 +23,6 @@ When we look at products, what we are doing is tying products to shelves S with 
 On tells us there is a product object PR on shelf S with a quantity of U at time T.
 
 ```Ex. on(product,shelf,quantity,time)```
-
-What the rules in the world.lp file is trying to do is given the init rules from the inst.lp files, we are trying to assign objects locations at time step 0.
-
 
 # Example
 Inst1.lp initial state:
