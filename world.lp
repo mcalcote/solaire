@@ -19,12 +19,15 @@ object(shelf,S) :- init(object(shelf,S),value(at,pair(X,Y))).
 value(at,pair(X,Y)) :- init(object(shelf,S),value(at,pair(X,Y))).
 
 % Extracts the product objects and their locations
-object(product,PR) :- init(object(product,PR),value(at,pair(X,Y))).
-value(at,pair(X,Y)) :- init(object(product,PR),value(at,pair(X,Y))).
+object(product,PR) :- init(object(product,PR),value(on,pair(X,Y))).
+value(at,pair(X,Y)) :- init(object(product,PR),value(on,pair(X,Y))).
 
 % Extracts the order objects and their locations
-object(order,O) :- init(object(order,O),value(at,pair(X,Y))).
-value(at,pair(X,Y)) :- init(object(order,O),value(at,pair(X,Y))).
+object(order,O) :- init(object(order,O),value(line,pair(X,Y))).
+value(line,pair(X,Y)) :- init(object(order,O),value(line,pair(X,Y))).
+
+object(order,O) :- init(object(order,O),value(pickingStation,X)).
+value(pickingStation,X) :- init(object(order,O),value(pickingStation,X)).
 
 
-#show object/2.
+#show value/2.
