@@ -25,6 +25,7 @@ On tells us there is a product object PR on shelf S with a quantity of U at time
 What the rules in the world.lp file is trying to do is given the init rules from the inst.lp files, we are trying to assign objects locations at time step 0.
 
 
+# Example
 Inst1.lp initial state:
 ![alt text](https://github.com/mcalcote/solaire/blob/master/inst1.PNG)
 
