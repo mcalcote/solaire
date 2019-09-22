@@ -32,6 +32,4 @@ value(pickingStation,X) :- init(object(order,O),value(pickingStation,X)).
 
 
 %#show value/2.
-
-%:- not location(object(node,N),pair(X,Y)).
 #show location/2.
