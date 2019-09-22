@@ -28,5 +28,6 @@ On tells us there is a product object PR on shelf S with a quantity of U at time
 Inst1.lp initial state:
 ![alt text](https://github.com/mcalcote/solaire/blob/master/inst1.PNG)
 
+R denotes the robots, S denotes the shelves, PS denotes the picking stations, and the P denotes the products with the N x denoting the quanity of the product on the shelf. If P is by itself, that means there is only 1 on the shelf. The red highlighted area is the highway.
 
 
