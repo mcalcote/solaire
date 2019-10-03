@@ -29,10 +29,8 @@ loc(X,Y) :- location(object(node,N),pair(X,Y),0).
 % the robot is carrying a shelf if the pickup action is performed
 carrying(R,S,T+1) :- occurs(object(robot,R),pickup,T), location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X,Y),T).
 
-% TODO: only perform the pickup action if a robot is in the same location as a shelf
-%%yay(R, S, X1, Y1, T) :- location(object(robot,R),pair(X1,Y1),T), location(object(shelf,S),pair(X2,Y2),T), pair(X1,Y1)==pair(X2,Y2).
-%:- occurs(object(robot,R),pickup,T), location(object(robot,R),pair(X1,Y1),T), location(object(shelf,S),pair(X2,Y2),T), pair(X1,Y1)!=pair(X2,Y2).
-
+% only perform the pickup action if a robot is in the same location as a shelf (not strictly necessary but removes some extraneous steady models)
+:- occurs(object(robot,R),pickup,T), location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X1,Y1),T), pair(X,Y)!=pair(X1,Y1).
 
 % the move action
 location(object(robot,R),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,DY),T), location(object(robot,R),pair(X,Y),T).
@@ -43,9 +41,8 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 % two robots can't be in the same location at the same time
 :- 2{location(object(robot,RR),pair(X,Y),T)}, loc(X,Y), T=0..m.
 
-% TODO: prevent robot from going out of bounds
-%:- not {location(object(robot,R),pair(X,Y),T) : object(robot,R)}=1, loc(X,Y), T=0..m.
-%:- not 1 {location(object(robot,R),pair(X,Y),T)}, loc(X,Y).
+% prevent robot from going out of bounds
+:- location(object(robot,R),pair(X,Y),T), not loc(X,Y). 
 
 % prevent robot carrying a shelf from moving through another shelf
 :- occurs(object(robot,R),move(DX,DY),T), location(object(robot,R),pair(X,Y),T), carrying(R,S,T), location(object(shelf,S1),pair(X+DX,Y+DY),T+1), S!=S1.
@@ -64,7 +61,11 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 % deliver action
 % TODO: Write deliver action
 
-
+%% If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
+%occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,PR), object(shelf,S), U, T)
+%object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
+%% When you deliver a product, you subtract what you took from the shelf
+%on(object(product,PR), object(shelf,S), U2-U1, T+1) :- occurs(object(robot,R),deliver(O,I,U1),T), on(object(product,PR), object(shelf,S), U2, T)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,11 +74,11 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 
 % fluents are initially exogenous
 
-%TODO: add exogenous fluents similar to:
-%{on(B,L,0):location(L)}=1 :- block(B).
-
-
-
+{location(object(node,N),pair(X,Y),0) : loc(X,Y)}=1				:- object(node,N).
+{location(object(highway,H),pair(X,Y),0) : loc(X,Y)}=1			:- object(highway,H).
+{location(object(pickingStation,P),pair(X,Y),0) : loc(X,Y)}=1	:- object(pickingStation,P).
+{location(object(robot,R),pair(X,Y),0) : loc(X,Y)}=1			:- object(robot,R).
+{location(object(shelf,S),pair(X,Y),0) : loc(X,Y)}=1			:- object(shelf,S).
 
 
 % actions are exogenous
@@ -90,13 +91,13 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 
 % uniqueness and existence of value constraints
 
-:- not {location(object(node,N),pair(X,Y),T)}=1, object(node,N), T=1..m.
-:- not {location(object(highway,H),pair(X,Y),T)}=1, object(highway,H), T=1..m.
-:- not {location(object(pickingStation,P),pair(X,Y),T)}=1, object(pickingStation,P), T=1..m.
-:- not {location(object(robot,R),pair(X,Y),T)}=1, object(robot,R), T=1..m.
-:- not {location(object(shelf,S),pair(X,Y),T)}=1, object(shelf,S), T=1..m.
-% TODO not working:
-%:- not {on(object(product,I),object(shelf,S),U,T)}=1, object(product,I), object(shelf,S), T=1..m.
+:- not {location(object(node,N),pair(X,Y),T)}=1, 			object(node,N),				T=1..m.
+:- not {location(object(highway,H),pair(X,Y),T)}=1, 		object(highway,H),			T=1..m.
+:- not {location(object(pickingStation,P),pair(X,Y),T)}=1,	object(pickingStation,P),	T=1..m.
+:- not {location(object(robot,R),pair(X,Y),T)}=1,			object(robot,R),			T=1..m.
+:- not {location(object(shelf,S),pair(X,Y),T)}=1,			object(shelf,S),			T=1..m.
+% TODO: Fix uniqueness for shelf/product.   Currently not working - missing one order 4 shelf at time 1+
+%:- not {on(object(product,I),object(shelf,S),U,T) : object(shelf,S)}=1, object(product,I), T=1..m.	
 
 
 % commonsense law of inertia
@@ -106,23 +107,23 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 {location(object(pickingStation,P),pair(X,Y),T+1)} 	:- location(object(pickingStation,P),pair(X,Y),T), T<m.
 {location(object(robot,R),pair(X,Y),T+1)}			:- location(object(robot,R),pair(X,Y),T), T<m.
 {location(object(shelf,S),pair(X,Y),T+1)}			:- location(object(shelf,S),pair(X,Y),T), T<m.
-% TODO: fix inertia of objects on shelves
-%{on(object(product,I),object(shelf,S),U,T+1)} :- on(object(product,I),object(shelf,S),U,T), T<m.
-
+{on(object(product,I),object(shelf,S),U,T+1)}		:- on(object(product,I),object(shelf,S),U,T), T<m.
 
 % TODO: Minimize the number of time steps
 
 
 
+
+%%% TEST OUTPUT BELOW %%%
+
 %location(R, pair(X,Y), T, r) :- location(object(robot,R),pair(X,Y),T).
 %location(S, pair(X,Y), T, s) :- location(object(shelf,S),pair(X,Y),T).
 %occurs(object(robot,R),move(DX,DY),T, r) :- occurs(object(robot,R),move(DX,DY),T).
-occurs(object(robot,R),pickup,T, r) :- occurs(object(robot,R),pickup,T).
+%occurs(object(robot,R),pickup,T, r) :- occurs(object(robot,R),pickup,T).
 
-#show occurs/4.
+%#show occurs/4.
 %#show location/4.
 
 %#show occurs/3.
 %#show carrying/4.
-
-%#show yay/5.
+#show on/4.
