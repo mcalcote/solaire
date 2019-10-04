@@ -20,6 +20,9 @@ loc(X,Y) :- location(object(node,N),pair(X,Y),0).
 % Robots can only perform up to one action at a time
 :- not {occurs(object(robot,R), A, T)} 1, object(robot,R), T = 0..m-1.
 
+% Goal state
+:- not orderLine(object(order,O),object(product,I),0,m), object(order,O), object(product,I).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % effects and preconditions of actions
@@ -29,8 +32,13 @@ loc(X,Y) :- location(object(node,N),pair(X,Y),0).
 % the robot is carrying a shelf if the pickup action is performed
 carrying(R,S,T+1) :- occurs(object(robot,R),pickup,T), location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X,Y),T).
 
-% only perform the pickup action if a robot is in the same location as a shelf (not strictly necessary but removes some extraneous steady models)
-:- occurs(object(robot,R),pickup,T), location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X1,Y1),T), pair(X,Y)!=pair(X1,Y1).
+% TODO: only perform the pickup action if a robot is in the same location as a shelf (not strictly necessary but removes some extraneous stable models)
+%:- occurs(object(robot,R),pickup,T), location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X1,Y1),T), location(object(node,N),pair(X,Y)), location(object(node,N1),pair(X1,Y1)), N!=N1.
+%:- occurs(object(robot,R),pickup,T), location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X1,Y1),T), 1{X!=X1; Y!=Y1}.
+
+% only perform the pickup action if a robot is not carrying anything
+:- occurs(object(robot,R),pickup,T), carrying(R,S,T).
+
 
 % the move action
 location(object(robot,R),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,DY),T), location(object(robot,R),pair(X,Y),T).
@@ -52,17 +60,22 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 
 
 % putdown action
-{carrying(R,S,T+1)} 0 :-  occurs(object(robot,R),putdown,T), carrying(R,S,T).  % I'm not sure if this does what I think it does which is set the carrying(R,S,T) atom to false.
+{carrying(R,S,T+1)} 0	:- occurs(object(robot,R),putdown,T), object(shelf,S), carrying(R,S,T).
 
 % prevent putdown in highway
 :- occurs(object(robot,R),putdown,T), location(object(robot,R),pair(X,Y),T), location(object(highway,H),pair(X,Y),T).
 
+% prevent putdown if not carrying anything
+:- occurs(object(robot,R),putdown,T), object(shelf,S), not carrying(R,S,T).
 
-% deliver action
-% TODO: Write deliver action
-% If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
-occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,PR), object(shelf,S), U, T)
-object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
+
+%% deliver action
+%% TODO: Write deliver action
+
+
+%% If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
+%occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,PR), object(shelf,S), U, T).
+%object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 
 
 %% If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
@@ -70,6 +83,16 @@ object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 %object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 %% When you deliver a product, you subtract what you took from the shelf
 %on(object(product,PR), object(shelf,S), U2-U1, T+1) :- occurs(object(robot,R),deliver(O,I,U1),T), on(object(product,PR), object(shelf,S), U2, T)
+
+orderLine(object(order,O),object(product,I),U1-U,T+1) 	:- occurs(object(robot,R),deliver(O,I,U),T), location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,I), object(shelf,S),U2,T), orderLine(object(order,O),object(product,I),U1,T), orderStation(object(order,O),object(pickingStation,P)).
+
+on(object(product,I), object(shelf,S),U2-U,T+1) 		:- occurs(object(robot,R),deliver(O,I,U),T), location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,I), object(shelf,S),U2,T), orderLine(object(order,O),object(product,I),U1,T), orderStation(object(order,O),object(pickingStation,P)).
+
+% prevent the order count and shelf counts from going below zero
+% TODO: More work needs to be done to come up with a better strategy for subtracting the processed values.
+:-orderLine(object(order,O),object(product,I),U,T), U<0, T=0..m.
+:-on(object(product,I), object(shelf,S),U,T), U<0, T=0..m.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % domain independent axioms
@@ -89,28 +112,33 @@ object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 {occurs(object(robot,R),move(X,Y),T) : move(X,Y)}	:- object(robot,R), T=0..m-1.
 {occurs(object(robot,R),pickup,T)}					:- object(robot,R), T=0..m-1.
 {occurs(object(robot,R),putdown,T)}					:- object(robot,R), T=0..m-1.
-{occurs(object(robot,R),deliver(O,I,U),T)}			:- object(robot,R), object(order,O), value(line,pair(I,U)), T=0..m-1.
+{occurs(object(robot,R),deliver(O,I,U),T)}			:- object(robot,R), orderLine(object(order,O),object(product,I),U,T), T=0..m-1.
 
 
 % uniqueness and existence of value constraints
 
-:- not {location(object(node,N),pair(X,Y),T)}=1, 			object(node,N),				T=1..m.
-:- not {location(object(highway,H),pair(X,Y),T)}=1, 		object(highway,H),			T=1..m.
-:- not {location(object(pickingStation,P),pair(X,Y),T)}=1,	object(pickingStation,P),	T=1..m.
-:- not {location(object(robot,R),pair(X,Y),T)}=1,			object(robot,R),			T=1..m.
-:- not {location(object(shelf,S),pair(X,Y),T)}=1,			object(shelf,S),			T=1..m.
-% TODO: Fix uniqueness for shelf/product.   Currently not working - missing one order 4 shelf at time 1+
-%:- not {on(object(product,I),object(shelf,S),U,T) : object(shelf,S)}=1, object(product,I), T=1..m.	
+:- not {location(object(node,N),pair(X,Y),T)}=1, object(node,N), T=1..m.
+:- not {location(object(highway,H),pair(X,Y),T)}=1, object(highway,H), T=1..m.
+:- not {location(object(pickingStation,P),pair(X,Y),T)}=1, object(pickingStation,P), T=1..m.
+:- not {location(object(robot,R),pair(X,Y),T)}=1, object(robot,R), T=1..m.
+:- not {location(object(shelf,S),pair(X,Y),T)}=1, object(shelf,S), T=1..m.
+% each shelf will have a unique unit value per product
+:- not {on(object(product,I),object(shelf,S),0..U,T+1)}=1, on(object(product,I),object(shelf,S),U,T), T=0..m-1.
+:- not {orderLine(object(order,O),object(product,I),0..U,T+1)}=1, orderLine(object(order,O),object(product,I),U,T), T=0..m-1.
+:- not {carrying(R,S,T+1)}=1, carrying(R,S,T), not occurs(object(robot,R),putdown,T), T=0..m-1.
 
 
 % commonsense law of inertia
 
-{location(object(node,N),pair(X,Y),T+1)}			:- location(object(node,N),pair(X,Y),T), T<m.
-{location(object(highway,H),pair(X,Y),T+1)} 		:- location(object(highway,H),pair(X,Y),T), T<m.
-{location(object(pickingStation,P),pair(X,Y),T+1)} 	:- location(object(pickingStation,P),pair(X,Y),T), T<m.
-{location(object(robot,R),pair(X,Y),T+1)}			:- location(object(robot,R),pair(X,Y),T), T<m.
-{location(object(shelf,S),pair(X,Y),T+1)}			:- location(object(shelf,S),pair(X,Y),T), T<m.
-{on(object(product,I),object(shelf,S),U,T+1)}		:- on(object(product,I),object(shelf,S),U,T), T<m.
+{location(object(node,N),pair(X,Y),T+1)}				:- location(object(node,N),pair(X,Y),T), T<m.
+{location(object(highway,H),pair(X,Y),T+1)} 			:- location(object(highway,H),pair(X,Y),T), T<m.
+{location(object(pickingStation,P),pair(X,Y),T+1)} 		:- location(object(pickingStation,P),pair(X,Y),T), T<m.
+{location(object(robot,R),pair(X,Y),T+1)}				:- location(object(robot,R),pair(X,Y),T), T<m.
+{location(object(shelf,S),pair(X,Y),T+1)}				:- location(object(shelf,S),pair(X,Y),T), T<m.
+{on(object(product,I),object(shelf,S),U,T+1)}			:- on(object(product,I),object(shelf,S),U,T), T<m.
+{orderLine(object(order,O),object(product,I),U,T+1)}	:- orderLine(object(order,O),object(product,I),U,T), T<m.
+{carrying(R,S,T+1)}										:- carrying(R,S,T), T<m.
+
 
 % TODO: Minimize the number of time steps
 
@@ -127,6 +155,6 @@ object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 %#show occurs/4.
 %#show location/4.
 
-%#show occurs/3.
-%#show carrying/4.
-#show on/4.
+#show occurs/3.
+#show carrying/3.
+%#show on/4.
