@@ -60,13 +60,16 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 
 % deliver action
 % TODO: Write deliver action
+% If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
+occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,PR), object(shelf,S), U, T)
+object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
+
 
 %% If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
 %occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,PR), object(shelf,S), U, T)
 %object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 %% When you deliver a product, you subtract what you took from the shelf
 %on(object(product,PR), object(shelf,S), U2-U1, T+1) :- occurs(object(robot,R),deliver(O,I,U1),T), on(object(product,PR), object(shelf,S), U2, T)
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % domain independent axioms
