@@ -51,25 +51,23 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 :- occurs(object(robot,R1),move(DX,DY),T+1), occurs(object(robot,R2),move(-DX,-DY),T+1), location(object(robot,R1),pair(X,Y),T), location(object(robot,R2),pair(X+DX,Y+DY),T).
 
 
-% putdown action
+%%%%%%%%%%% putdown action %%%%%%%%%%%
 {carrying(R,S,T+1)} 0 :-  occurs(object(robot,R),putdown,T), carrying(R,S,T).  % I'm not sure if this does what I think it does which is set the carrying(R,S,T) atom to false.
 
 % prevent putdown in highway
 :- occurs(object(robot,R),putdown,T), location(object(robot,R),pair(X,Y),T), location(object(highway,H),pair(X,Y),T).
 
+%%%%%%%%%%% deliver action %%%%%%%%%%%
 
-% deliver action
-% TODO: Write deliver action
 % If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
-occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,PR), object(shelf,S), U, T)
-object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
+occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), 
+on(object(product,PR), object(shelf,S), U, T), object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 
+% When you deliver a product, you subtract what you took from the shelf
+on(object(product,PR), object(shelf,S), U2-U1, T+1) :- occurs(object(robot,R),deliver(O,I,U1),T), on(object(product,PR), object(shelf,S), U2, T).
 
-%% If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
-%occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), on(object(product,PR), object(shelf,S), U, T)
-%object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
-%% When you deliver a product, you subtract what you took from the shelf
-%on(object(product,PR), object(shelf,S), U2-U1, T+1) :- occurs(object(robot,R),deliver(O,I,U1),T), on(object(product,PR), object(shelf,S), U2, T)
+% Whenever a delivery is completed at time step T, we should decrement the needed_deliveries count, that way when it hits zero at time step m, we are done.
+needed_deliveries(C-1,T+1) :- occurs(object(robot,R),deliver(O,I,U),T), needed_deliveries(C,T).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % domain independent axioms
@@ -89,7 +87,7 @@ object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 {occurs(object(robot,R),move(X,Y),T) : move(X,Y)}	:- object(robot,R), T=0..m-1.
 {occurs(object(robot,R),pickup,T)}					:- object(robot,R), T=0..m-1.
 {occurs(object(robot,R),putdown,T)}					:- object(robot,R), T=0..m-1.
-{occurs(object(robot,R),deliver(O,I,U),T)}			:- object(robot,R), object(order,O), value(line,pair(I,U)), T=0..m-1.
+{occurs(object(robot,R),deliver(O,I,U),T)}			:- object(robot,R), object(order,O,value(line,pair(I,U))), value(line,pair(I,U)) , T=0..m-1.
 
 
 % uniqueness and existence of value constraints
@@ -111,10 +109,11 @@ object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 {location(object(robot,R),pair(X,Y),T+1)}			:- location(object(robot,R),pair(X,Y),T), T<m.
 {location(object(shelf,S),pair(X,Y),T+1)}			:- location(object(shelf,S),pair(X,Y),T), T<m.
 {on(object(product,I),object(shelf,S),U,T+1)}		:- on(object(product,I),object(shelf,S),U,T), T<m.
+{needed_deliveries(C,T+1)} :- needed_deliveries(C,T), T<m.
 
 % TODO: Minimize the number of time steps
-
-
+% We want to minimize all occurances of object O actions A at time T
+%#minimize{1,O,A,T: occurs(O,A,T)}.
 
 
 %%% TEST OUTPUT BELOW %%%
@@ -124,9 +123,8 @@ object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
 %occurs(object(robot,R),move(DX,DY),T, r) :- occurs(object(robot,R),move(DX,DY),T).
 %occurs(object(robot,R),pickup,T, r) :- occurs(object(robot,R),pickup,T).
 
-%#show occurs/4.
 %#show location/4.
-
 %#show occurs/3.
 %#show carrying/4.
-#show on/4.
+%#show on/4.
+%show move/2.

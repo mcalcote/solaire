@@ -54,6 +54,13 @@ value(line,pair(X,Y)) :- init(object(order,O),value(line,pair(X,Y))).
 object(order,O, value(pickingStation,X)) :- init(object(order,O),value(pickingStation,X)).
 value(pickingStation,X) :- init(object(order,O),value(pickingStation,X)).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% GOAL STATE DERIVED FROM INITIAL INSTANCE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% I count the number of deliveries that need to be fulfilled and place it in this predicate needed_deliveries(C,T)
+% I then also set it so that the goal is you want needed_deliveries to have  a zero value at time step m. 
+needed_deliveries(C,0) :- C = #count{O,X,Y : object(order,O, value(line,pair(X,Y)))}.
+:- not needed_deliveries(0,m).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Testing area to view outputs
@@ -61,4 +68,5 @@ value(pickingStation,X) :- init(object(order,O),value(pickingStation,X)).
 %#show value/2.
 %#show location/2.
 %#show on/4.
-#show object/3.
+%#show object/3.
+%#show needed_deliveries/2.
