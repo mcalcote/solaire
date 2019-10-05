@@ -37,8 +37,8 @@ orderStation(object(order,O),object(pickingStation,P))	:- init(object(order,O),v
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % I count the number of deliveries that need to be fulfilled and place it in this predicate needed_deliveries(C,T)
 % I then also set it so that the goal is you want needed_deliveries to have  a zero value at time step m. 
-needed_deliveries(C,0) :- C = #count{O,X,Y : object(order,O, value(line,pair(X,Y)))}.
-:- not needed_deliveries(0,m).
+% needed_deliveries(C,0) :- C = #count{O,X,Y : object(order,O, value(line,pair(X,Y)))}.
+% :- not needed_deliveries(0,m).
 
 %#show value/2.
 
@@ -46,3 +46,5 @@ needed_deliveries(C,0) :- C = #count{O,X,Y : object(order,O, value(line,pair(X,Y
 %#show on/4.
 %#show object/3.
 %#show needed_deliveries/2.
+
+
