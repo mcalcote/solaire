@@ -31,7 +31,7 @@ Inst1.lp initial state:
 R denotes the robots, S denotes the shelves, PS denotes the picking stations, and the P denotes the products with the N x denoting the quanity of the product on the shelf. If P is by itself, that means there is only 1 on the shelf. The red highlighted area is the highway.
 
 # TODO
-- Tracking Orders to make sure they are complete (e.g. END STATES and goal)
+- Fix the predicate tracking that way we can see occurs for move, pickup, and putdown
 - Minimize number of moves needed.
 - Fix shelf duplicates
 - Presentation
