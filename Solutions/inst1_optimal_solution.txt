@@ -1,4 +1,4 @@
-clingo world.lp robots.lp inst2.lp -t 12 -c m=14
+clingo world.lp robots.lp inst1.lp -t 12 -c m=13
 
 ---------------------------------------------------------------------------
 
