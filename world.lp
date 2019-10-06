@@ -25,19 +25,18 @@ object(product,I) 							:- init(object(product,I),value(on,pair(S,U))).
 % Extracts the order objects and their locations
 object(order,O) 									:- init(object(order,O),value(line,pair(I,U))).
 value(line,pair(I,U))								:- init(object(order,O),value(line,pair(I,U))).
-line(object(product,I),U)							:- init(object(order,O),value(line,pair(I,U))).
-orderLine(object(order,O),object(product,I),U,0)	:- init(object(order,O),value(line,pair(I,U))).
+object(order,O,value(line,pair(I,U)))               :- init(object(order,O),value(line,pair(I,U))).
 
 object(order,O) 										:- init(object(order,O),value(pickingStation,P)).
 object(pickingStation,P)								:- init(object(order,O),value(pickingStation,P)).
-orderStation(object(order,O),object(pickingStation,P))	:- init(object(order,O),value(pickingStation,P)).
+object(order,O,value(pickingStation,P))                 :- init(object(order,O),value(pickingStation,P)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % GOAL STATE DERIVED FROM INITIAL INSTANCE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % I count the number of deliveries that need to be fulfilled and place it in this predicate needed_deliveries(C,T)
 % I then also set it so that the goal is you want needed_deliveries to have  a zero value at time step m. 
-needed_deliveries(C,0) :- C = #count{O,X,Y : object(order,O, value(line,pair(X,Y)))}.
+needed_deliveries(C,0) :- C = #count{O,I,U : object(order,O, value(line,pair(I,U)))}.
 :- not needed_deliveries(0,m).
 
 %#show value/2.

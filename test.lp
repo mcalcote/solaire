@@ -30,11 +30,15 @@ init(object(robot,1),value(at,pair(4,3))).
 init(object(robot,2),value(at,pair(2,2))).
 
 init(object(shelf,3),value(at,pair(2,3))).
+init(object(shelf,4),value(at,pair(2,2))).
 init(object(shelf,6),value(at,pair(1,2))).
 
 init(object(product,1),value(on,pair(3,1))).
+init(object(product,2),value(on,pair(4,1))).
 init(object(product,3),value(on,pair(6,4))).
 
 init(object(order,1),value(pickingStation,1)).
 init(object(order,1),value(line,pair(1,1))).
 init(object(order,1),value(line,pair(3,4))).
+init(object(order,2),value(pickingStation,2)).
+init(object(order,2),value(line,pair(2,1))).

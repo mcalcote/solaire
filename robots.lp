@@ -27,17 +27,27 @@ loc(X,Y) :- location(object(node,N),pair(X,Y),0).
 
 
 %%%%%%%%%%% pickup action %%%%%%%%%%%
+% only perform the pickup action if a robot is in the same location as a shelf and hands are empty
+ready_to_pickup(R,S,T) :- location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X,Y),T), not carrying(R,S,T).
 
 % the robot is carrying a shelf if the pickup action is performed
-carrying(R,S,T+1)	:- occurs(object(robot,R),pickup,T), location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X,Y),T), T<m.
+carrying(R,S,T+1)	:- occurs(object(robot,R),pickup,T), ready_to_pickup(R,S,T).
 
-% only perform the pickup action if a robot is not carrying anything
-:- occurs(object(robot,R),pickup,T), carrying(R,S,T).
+%%%%%%%%%%% putdown action %%%%%%%%%%%
 
-% only perform the pickup action if a robot is in the same location as a shelf
-ready_to_pickup(R,T) 		:- location(object(robot,R),pair(X,Y),T), location(object(shelf,S),pair(X,Y),T).
-:- occurs(object(robot,R),pickup,T), not ready_to_pickup(R,T).
+% the robot is no longer carrying a shelf if the putdown action is performed
+not carrying(R,S,T+1)	:- carrying(R,S,T), occurs(object(robot,R),putdown,T), T=0..m-1.
 
+% prevent putdown if not carrying anything
+robot_loaded(R,T)	:- carrying(R,S,T).
+:- occurs(object(robot,R),putdown,T), not robot_loaded(R,T).
+
+% prevent putdown in highway
+:- occurs(object(robot,R),putdown,T), location(object(robot,R),pair(X,Y),T), location(object(highway,H),pair(X,Y),T).
+
+% prevent putdown in occupied location
+:- occurs(object(robot,R),putdown,T), carrying(R,S1,T), location(object(robot,R),pair(X,Y),T), location(object(shelf,S1),pair(X,Y),T), location(object(shelf,S2),pair(X,Y),T), S1 != S2.
+:- occurs(object(robot,R),putdown,T), carrying(R,S,T), location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T).
 
 %%%%%%%%%%% move action %%%%%%%%%%%
 
@@ -65,31 +75,27 @@ location(object(shelf,S),pair(X+DX,Y+DY),T+1) :- occurs(object(robot,R),move(DX,
 % prevent a robot from just going back and forth (with the exception of moving out of the way for another robot)
 :- occurs(object(robot,R1),move(DX,DY),T), occurs(object(robot,R1),move(-DX,-DY),T+1), location(object(robot,R1),pair(X,Y),T), location(object(robot,R2),pair(X,Y),T+1), R1!=R2, T<m-1.
 
-
-%%%%%%%%%%% putdown action %%%%%%%%%%%
-
-% the robot is no longer carrying a shelf if the putdown action is performed
-{carrying(R,S,T+1)} 0	:- carrying(R,S,T), occurs(object(robot,R),putdown,T), T=0..m-1.
-
-% prevent putdown if not carrying anything
-robot_loaded(R,T)	:- carrying(R,S,T).
-:- occurs(object(robot,R),putdown,T), not robot_loaded(R,T).
-
-% prevent putdown in highway
-:- occurs(object(robot,R),putdown,T), location(object(robot,R),pair(X,Y),T), location(object(highway,H),pair(X,Y),T).
-
-
 %%%%%%%%%%% deliver action %%%%%%%%%%%
 
 % If robot is in the same location as the picking station, and it is carrying a shelf with products that match the order
-occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), 
-on(object(product,PR), object(shelf,S), U, T), object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,1)).
+%occurs(object(robot,R),deliver(O,I,U),T) :- location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), 
+%on(object(product,I), object(shelf,S), U, T), object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,P)) .
+
+shelf_stocked(S,I,U,T) :- on(object(product,I), object(shelf,S), U, T), U > 0.
+
+% Robot is ready to deliver when it it as the location of the picking station and it has the product
+ready_to_deliver(R,O,I,U,T) :-  location(object(robot,R),pair(X,Y),T), location(object(pickingStation,P),pair(X,Y),T), carrying(R,S,T), 
+on(object(product,I), object(shelf,S), U, T), object(order,O,value(line,pair(I,U))), object(order,O,value(pickingStation,P)), shelf_stocked(S,I,U,T).
+
+% Robot cannot deliver unless precondition is met above
+:- occurs(object(robot,R),deliver(O,I,U),T), not ready_to_deliver(R,O,I,U,T).
 
 % When you deliver a product, you subtract what you took from the shelf
-on(object(product,PR), object(shelf,S), U2-U1, T+1) :- occurs(object(robot,R),deliver(O,I,U1),T), on(object(product,PR), object(shelf,S), U2, T).
+on(object(product,I), object(shelf,S), U2-U1, T+1) :- occurs(object(robot,R),deliver(O,I,U1),T), on(object(product,I), object(shelf,S), U2, T).
 
 % Whenever a delivery is completed at time step T, we should decrement the needed_deliveries count, that way when it hits zero at time step m, we are done.
 needed_deliveries(C-1,T+1) :- occurs(object(robot,R),deliver(O,I,U),T), needed_deliveries(C,T).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % domain independent axioms
@@ -136,24 +142,20 @@ needed_deliveries(C-1,T+1) :- occurs(object(robot,R),deliver(O,I,U),T), needed_d
 {location(object(shelf,S),pair(X,Y),T+1)}			:- location(object(shelf,S),pair(X,Y),T), T<m.
 {on(object(product,I),object(shelf,S),U,T+1)}		:- on(object(product,I),object(shelf,S),U,T), T<m.
 {carrying(R,S,T+1)}									:- carrying(R,S,T), T<m.
-{needed_deliveries(C,T+1)} :- needed_deliveries(C,T), T<m.
-
+{needed_deliveries(C,T+1)}                          :- needed_deliveries(C,T), T<m.
 
 
 % TODO: Minimize the number of time steps
 % We want to minimize all occurances of object O actions A at time T
-%#minimize{1,O,A,T: occurs(O,A,T)}.
+#minimize{1,O,A,T: occurs(O,A,T)}.
 
 
 %%% TEST OUTPUT BELOW %%%
 
-%location(R, pair(X,Y), T, r) :- location(object(robot,R),pair(X,Y),T).
-%location(S, pair(X,Y), T, s) :- location(object(shelf,S),pair(X,Y),T).
-%occurs(object(robot,R),move(DX,DY),T, r) :- occurs(object(robot,R),move(DX,DY),T).
-%occurs(object(robot,R),pickup,T, r) :- occurs(object(robot,R),pickup,T).
-
-%#show location/4.
-%#show occurs/3.
-%#show carrying/4.
+%#show location/3.
+#show occurs/3.
+%#show order_complete/1.
+%#show carrying/3.
+%#show ready_to_pickup/2.
 %#show on/4.
 %#show move/2.
